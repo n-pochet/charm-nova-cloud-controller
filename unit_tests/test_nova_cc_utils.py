@@ -19,6 +19,7 @@ from test_utils import (
     CharmTestCase,
     get_default_config,
     patch_open,
+    get_open_name,
 )
 
 __default_config = get_default_config()
@@ -103,22 +104,22 @@ BASE_ENDPOINTS = {
 # before frontends (haproxy/apache) to avoid port conflicts.
 RESTART_MAP_ICEHOUSE = OrderedDict([
     ('/etc/nova/nova.conf', [
-        'nova-api-ec2', 'nova-api-os-compute', 'nova-objectstore',
+        'nova-api-os-compute',
         'nova-cert', 'nova-scheduler', 'nova-conductor'
     ]),
     ('/etc/nova/api-paste.ini', [
-        'nova-api-ec2', 'nova-api-os-compute'
+        'nova-api-os-compute'
     ]),
     ('/etc/haproxy/haproxy.cfg', ['haproxy']),
     ('/etc/apache2/sites-available/openstack_https_frontend', ['apache2']),
 ])
 RESTART_MAP_OCATA_ACTUAL = OrderedDict([
     ('/etc/nova/nova.conf', [
-        'nova-api-ec2', 'nova-api-os-compute', 'nova-objectstore',
+        'nova-api-os-compute',
         'nova-cert', 'nova-scheduler', 'nova-conductor', 'apache2'
     ]),
     ('/etc/nova/api-paste.ini', [
-        'nova-api-ec2', 'nova-api-os-compute', 'apache2'
+        'nova-api-os-compute', 'apache2'
     ]),
     ('/etc/haproxy/haproxy.cfg', ['haproxy']),
     ('/etc/apache2/sites-available/openstack_https_frontend', ['apache2']),
@@ -126,11 +127,11 @@ RESTART_MAP_OCATA_ACTUAL = OrderedDict([
 ])
 RESTART_MAP_OCATA_BASE = OrderedDict([
     ('/etc/nova/nova.conf', [
-        'nova-api-ec2', 'nova-api-os-compute', 'nova-placement-api',
-        'nova-objectstore', 'nova-cert', 'nova-scheduler', 'nova-conductor'
+        'nova-api-os-compute', 'nova-placement-api',
+        'nova-cert', 'nova-scheduler', 'nova-conductor'
     ]),
     ('/etc/nova/api-paste.ini', [
-        'nova-api-ec2', 'nova-api-os-compute', 'nova-placement-api'
+        'nova-api-os-compute', 'nova-placement-api'
     ]),
     ('/etc/haproxy/haproxy.cfg', ['haproxy']),
     ('/etc/apache2/sites-available/openstack_https_frontend', ['apache2'])
@@ -317,6 +318,9 @@ class NovaCCUtilsTests(CharmTestCase):
         self._resource_map()
         _map = utils.restart_map(actual_services=False)
         self.assertIsInstance(_map, OrderedDict)
+        self.maxDiff = None
+        self.assertEqual(_map['/etc/nova/nova.conf'],
+                         RESTART_MAP_OCATA_BASE['/etc/nova/nova.conf'])
         self.assertEqual(_map, RESTART_MAP_OCATA_BASE)
 
     @patch('charmhelpers.contrib.openstack.context.SubordinateConfigContext')
@@ -339,10 +343,12 @@ class NovaCCUtilsTests(CharmTestCase):
         self.test_config.set('console-access-protocol', 'vnc')
         _proto = utils.console_attributes('protocol')
         _servs = utils.console_attributes('services')
+        _servs.sort()
         _pkgs = utils.console_attributes('packages')
+        _pkgs.sort()
         _proxy_page = utils.console_attributes('proxy-page')
-        vnc_pkgs = ['nova-novncproxy', 'nova-xvpvncproxy', 'nova-consoleauth']
-        vnc_servs = ['nova-novncproxy', 'nova-xvpvncproxy', 'nova-consoleauth']
+        vnc_pkgs = ['nova-consoleauth', 'nova-novncproxy', 'nova-xvpvncproxy']
+        vnc_servs = ['nova-consoleauth', 'nova-novncproxy', 'nova-xvpvncproxy']
         self.assertEqual(_proto, 'vnc')
         self.assertEqual(_servs, vnc_servs)
         self.assertEqual(_pkgs, vnc_pkgs)
@@ -392,8 +398,12 @@ class NovaCCUtilsTests(CharmTestCase):
         self.enable_memcache.return_value = False
         pkgs = utils.determine_packages()
         ex = list(set(utils.BASE_PACKAGES + utils.BASE_SERVICES))
+        ex.remove('nova-objectstore')
+        ex.remove('nova-api-ec2')
         # nova-placement-api is purposely dropped unless it's ocata
         ex.remove('nova-placement-api')
+        ex.sort()
+        pkgs.sort()
         self.assertEqual(ex, pkgs)
 
     @patch('charmhelpers.contrib.openstack.context.SubordinateConfigContext')
@@ -404,6 +414,10 @@ class NovaCCUtilsTests(CharmTestCase):
         self.enable_memcache.return_value = False
         pkgs = utils.determine_packages()
         ex = list(set(utils.BASE_PACKAGES + utils.BASE_SERVICES))
+        ex.remove('nova-objectstore')
+        ex.remove('nova-api-ec2')
+        ex.sort()
+        pkgs.sort()
         self.assertEqual(ex, pkgs)
 
     @patch('charmhelpers.contrib.openstack.context.SubordinateConfigContext')
@@ -509,7 +523,7 @@ class NovaCCUtilsTests(CharmTestCase):
     @patch.object(utils, 'ssh_known_host_key')
     @patch('subprocess.check_output')
     def test_add_known_host_exists(self, check_output, host_key, rm):
-        check_output.return_value = '|1|= fookey'
+        check_output.return_value = '|1|= fookey'.encode()
         host_key.return_value = '|1|= fookey'
         with patch_open() as (_open, _file):
             utils.add_known_host('foohost')
@@ -522,7 +536,7 @@ class NovaCCUtilsTests(CharmTestCase):
     @patch('subprocess.check_output')
     def test_add_known_host_exists_outdated(
             self, check_output, host_key, rm, known_hosts):
-        check_output.return_value = '|1|= fookey'
+        check_output.return_value = '|1|= fookey'.encode()
         host_key.return_value = '|1|= fookey_old'
         with patch_open() as (_open, _file):
             utils.add_known_host('foohost', None, None)
@@ -534,7 +548,7 @@ class NovaCCUtilsTests(CharmTestCase):
     @patch('subprocess.check_output')
     def test_add_known_host_exists_added(
             self, check_output, host_key, rm, known_hosts):
-        check_output.return_value = '|1|= fookey'
+        check_output.return_value = '|1|= fookey'.encode()
         host_key.return_value = None
         with patch_open() as (_open, _file):
             _file.write = MagicMock()
@@ -542,7 +556,7 @@ class NovaCCUtilsTests(CharmTestCase):
             self.assertFalse(rm.called)
             _file.write.assert_called_with('|1|= fookey\n')
 
-    @patch('__builtin__.open')
+    @patch(get_open_name())
     @patch('os.mkdir')
     @patch('os.path.isdir')
     def test_ssh_directory_for_unit(self, isdir, mkdir, _open):
@@ -646,7 +660,7 @@ class NovaCCUtilsTests(CharmTestCase):
         """On precise ssh-keygen does not error if host not found in file. So
          check charm processes empty output properly"""
         _known_hosts.return_value = '/foo/known_hosts'
-        _check_output.return_value = ''
+        _check_output.return_value = ''.encode()
         key = utils.ssh_known_host_key('test')
         self.assertEqual(key, None)
 
@@ -1068,7 +1082,7 @@ class NovaCCUtilsTests(CharmTestCase):
         +-------+--------------------------------------+
         | cell0 | 00000000-0000-0000-0000-000000000000 |
         | cell1 | c83121db-f1c7-464a-b657-38c28fac84c6 |
-        +-------+--------------------------------------+""")
+        +-------+--------------------------------------+""").encode()
         expected = 'c83121db-f1c7-464a-b657-38c28fac84c6'
         self.assertEqual(expected, utils.get_cell_uuid('cell1'))
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 # Copyright 2016 Canonical Ltd
 #
@@ -23,7 +23,7 @@ from subprocess import (
     check_call,
 )
 
-from urlparse import urlparse
+from six.moves.urllib.parse import urlparse
 
 from charmhelpers.core.hookenv import (
     Hooks,

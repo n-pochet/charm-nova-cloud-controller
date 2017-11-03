@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 import os
 import logging
 import unittest
 
 import yaml
+import six
 
 from contextlib import contextmanager
 from mock import patch, MagicMock
@@ -51,7 +53,7 @@ def get_default_config():
     '''
     default_config = {}
     config = load_config()
-    for k, v in config.iteritems():
+    for k, v in six.iteritems(config):
         if 'default' in v:
             default_config[k] = v['default']
         else:
@@ -126,13 +128,29 @@ def patch_open():
     yielded.
 
     Yields the mock for "open" and "file", respectively.'''
-    mock_open = MagicMock(spec=open)
-    mock_file = MagicMock(spec=file)
+    open_name = get_open_name()
+    if six.PY3:
+        open_func = open_name
+        file_func = io.FileIO
+    else:
+        open_func = open
+        file_func = file
+
+    mock_open = MagicMock(spec=open_func)
+    mock_file = MagicMock(spec=file_func)
 
     @contextmanager
     def stub_open(*args, **kwargs):
         mock_open(*args, **kwargs)
         yield mock_file
 
-    with patch('__builtin__.open', stub_open):
+    with patch(open_name, stub_open):
         yield mock_open, mock_file
+
+
+def get_open_name():
+    '''Returns the name of the open() function'''
+    if six.PY3:
+        return 'builtins.open'
+    else:
+        return '__builtin__.open'

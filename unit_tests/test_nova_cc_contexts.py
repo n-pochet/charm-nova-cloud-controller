@@ -23,7 +23,10 @@ with mock.patch('charmhelpers.core.hookenv.config'):
 
 from charmhelpers.contrib.openstack import neutron
 from charmhelpers.contrib.openstack import utils
-from test_utils import CharmTestCase
+from test_utils import (
+    CharmTestCase,
+    get_open_name,
+)
 
 TO_PATCH = [
     'relation_ids',
@@ -174,7 +177,7 @@ class NovaComputeContextTests(CharmTestCase):
         ctxt = context.ConsoleSSLContext()()
         self.assertEqual(ctxt, {})
 
-    @mock.patch('__builtin__.open')
+    @mock.patch(get_open_name())
     @mock.patch('os.path.exists')
     @mock.patch.object(context, 'config')
     @mock.patch.object(context, 'unit_get')
@@ -205,7 +208,7 @@ class NovaComputeContextTests(CharmTestCase):
         self.assertEqual(ctxt['novncproxy_base_url'],
                          'https://10.5.100.1:6080/vnc_auto.html')
 
-    @mock.patch('__builtin__.open')
+    @mock.patch(get_open_name())
     @mock.patch('os.path.exists')
     @mock.patch.object(context, 'config')
     @mock.patch.object(context, 'unit_get')
@@ -235,7 +238,7 @@ class NovaComputeContextTests(CharmTestCase):
         self.assertEqual(ctxt['novncproxy_base_url'],
                          'https://10.5.0.1:6080/vnc_auto.html')
 
-    @mock.patch('__builtin__.open')
+    @mock.patch(get_open_name())
     @mock.patch('os.path.exists')
     @mock.patch.object(context, 'config')
     @mock.patch.object(context, 'unit_get')
@@ -266,7 +269,7 @@ class NovaComputeContextTests(CharmTestCase):
         self.assertEqual(ctxt['html5proxy_base_url'],
                          'https://10.5.100.1:6082/spice_auto.html')
 
-    @mock.patch('__builtin__.open')
+    @mock.patch(get_open_name())
     @mock.patch('os.path.exists')
     @mock.patch.object(context, 'config')
     @mock.patch.object(context, 'unit_get')

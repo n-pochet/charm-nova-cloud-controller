@@ -25,10 +25,10 @@ __default_config = get_default_config()
 __default_config['openstack-origin'] = ''
 
 with mock.patch('charmhelpers.core.hookenv.config') as config:
-    with mock.patch('charmhelpers.contrib.openstack.utils.get_os_codename_package'):  # noqa
+    with mock.patch('charmhelpers.contrib.openstack.utils.get_os_codename_package') as get_os_codename_package:  # noqa
         # this makes the config behave more similar to the real config()
         config.side_effect = lambda k: __default_config.get(k)
-
+        get_os_codename_package.return_value = 'mitaka'
         import nova_cc_utils as utils  # noqa
 
 # Need to do some early patching to get the module loaded.

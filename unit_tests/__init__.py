@@ -24,3 +24,4 @@ mock_apt.apt_pkg = mock.MagicMock()
 
 sys.path.append('actions/')
 sys.path.append('hooks/')
+sys.path.append('unit_tests')

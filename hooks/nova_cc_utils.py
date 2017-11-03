@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import configparser
 import os
 import subprocess
-import ConfigParser
 
 from base64 import b64encode
 from collections import OrderedDict
@@ -345,7 +345,7 @@ def register_configs(release=None):
     release = release or os_release('nova-common')
     configs = templating.OSConfigRenderer(templates_dir=TEMPLATES,
                                           openstack_release=release)
-    for cfg, rscs in resource_map().iteritems():
+    for cfg, rscs in resource_map().items():
         configs.register(cfg, rscs['contexts'])
     return configs
 
@@ -360,7 +360,7 @@ def restart_map(actual_services=True):
     '''
     return OrderedDict(
         [(cfg, v['services'])
-         for cfg, v in resource_map(actual_services).iteritems()
+         for cfg, v in resource_map(actual_services).items()
          if v['services']])
 
 
@@ -726,7 +726,7 @@ def get_cell_uuid(cell):
     log("Listing cell, '{}'".format(cell), level=INFO)
     cmd = ['sudo', 'nova-manage', 'cell_v2', 'list_cells']
     try:
-        out = subprocess.check_output(cmd)
+        out = subprocess.check_output(cmd).decode('UTF-8')
     except subprocess.CalledProcessError as e:
         log('list_cells failed\n{}'.format(e.output), level=ERROR)
         raise
@@ -869,7 +869,7 @@ def auth_token_config(setting):
     Returns currently configured value for setting in api-paste.ini's
     authtoken section, or None.
     """
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
     config.read('/etc/nova/api-paste.ini')
     try:
         value = config.get('filter:authtoken', setting)
@@ -919,7 +919,7 @@ def ssh_known_host_key(host, unit=None, user=None):
     try:
         # The first line of output is like '# Host xx found: line 1 type RSA',
         # which should be excluded.
-        output = subprocess.check_output(cmd).strip()
+        output = subprocess.check_output(cmd).decode('UTF-8').strip()
     except subprocess.CalledProcessError:
         return None
 
@@ -952,7 +952,7 @@ def add_known_host(host, unit=None, user=None):
     '''Add variations of host to a known hosts file.'''
     cmd = ['ssh-keyscan', '-H', '-t', 'rsa', host]
     try:
-        remote_key = subprocess.check_output(cmd).strip()
+        remote_key = subprocess.check_output(cmd).decode('UTF-8').strip()
     except Exception as e:
         log('Could not obtain SSH host key from %s' % host, level=ERROR)
         raise e

@@ -89,6 +89,7 @@ TO_PATCH = [
     'serial_console_settings',
     'get_relation_ip',
     'is_clustered',
+    'update_aws_compat_services',
 ]
 
 
@@ -152,6 +153,7 @@ class NovaCCHooksTests(CharmTestCase):
                                        mock_update_aws_compat_services):
         mock_determine_packages.return_value = []
         utils_config.side_effect = self.test_config.get
+        self.relation_ids.return_value = []
         self.test_config.set('console-access-protocol', 'dummy')
         self.openstack_upgrade_available.return_value = False
         mock_is_db_initialised.return_value = False
@@ -336,8 +338,10 @@ class NovaCCHooksTests(CharmTestCase):
                  relation_id=None),
             call(authorized_keys_max_index=3, relation_id=None),
             call(known_hosts_max_index=3, relation_id=None)]
-        self.assertEqual(sorted(self.relation_set.call_args_list),
-                         sorted(expected_relations))
+        self.assertEqual(len(expected_relations),
+                         len(self.relation_set.call_args_list))
+        for c in self.relation_set.call_args_list:
+            self.assertTrue(c in expected_relations)
 
     @patch.object(hooks, 'is_cellv2_init_ready')
     @patch.object(hooks, 'is_db_initialised')
@@ -372,8 +376,10 @@ class NovaCCHooksTests(CharmTestCase):
                  relation_id=None),
             call(relation_settings={'nova_authorized_keys_max_index': 3},
                  relation_id=None)]
-        self.assertEqual(sorted(self.relation_set.call_args_list),
-                         sorted(expected_relations))
+        self.assertEqual(len(expected_relations),
+                         len(self.relation_set.call_args_list))
+        for c in self.relation_set.call_args_list:
+            self.assertTrue(c in expected_relations)
 
     @patch.object(hooks, 'is_cellv2_init_ready')
     @patch.object(hooks, 'is_db_initialised')

@@ -48,7 +48,7 @@ from charmhelpers.contrib.openstack.ip import (
 
 def context_complete(ctxt):
     _missing = []
-    for k, v in ctxt.iteritems():
+    for k, v in ctxt.items():
         if v is None or v == '':
             _missing.append(k)
     if _missing:
